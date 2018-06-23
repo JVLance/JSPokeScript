@@ -4,14 +4,15 @@ class Script {
 	
 	constructor(obj){
 		
+		this.version	= obj.version;
 		this.compiler 	= obj.compiler;
-		this.movements	= obj.movements;
+		this.movements	= obj.movements[this.version];
 		this.alias    	= obj.alias;
 		this.subscripts = new Array();
 		this.output		= "";
 		this.raws		= new Array();
 		
-		if typeof(obj.parent) != 'undefined'{
+		if (typeof(obj.parent) != 'undefined'){
 			this.isRoot = false;
 			this.parent = obj.parent;
 		}else{
@@ -23,7 +24,7 @@ class Script {
 	/* TO REGISTER ONE OR MANY MINISPRITES */
 	registerMini(minis){
 		for (mini in minis){
-			this.minis[mini] = new MiniSprite(minis[mini], getParent());
+			this.minis[mini] = new MiniSprite(this.compiler, this.movements, minis[mini], getParent());
 		}
 	}
 	
@@ -51,7 +52,7 @@ class Script {
 	question(text, callback, alias, callAlias){
 		this.msgbox(text, 'boolean', alias);
 		
-		let callAlias = typeof(callAlias) == 'undefined' this.generateAlias() ? callAlias;
+		let callAlias = typeof(callAlias) == 'undefined' ? this.generateAlias() : callAlias;
 		
 		let jump = this.compiler.compare('lastresult', 1)
 			+ this.backspace()
@@ -70,7 +71,8 @@ class Script {
 			compiler : this.compiler, 
 			movements : this.movements, 
 			alias : alias, 
-			parent : this.getParent()
+			parent : this.getParent(),
+			version : this.version
 		});
 		
 		childScript.execute = fnGenerate;

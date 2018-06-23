@@ -25,10 +25,11 @@ const ruby = {
 	},
 	jump : {
 		DOWN : '42', UP : '43', LEFT : '44', RIGHT : '45'
-	}
+	},
 	expresions : {
 		exclamation : '56', question : '57', love : '58'
-	}
+	},
+	end : 'FE'
 }
 
 const movements = {
