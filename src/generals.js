@@ -1,14 +1,13 @@
 const elseObj = {
     ELSE: function(callback, continues = true) {
         callback();
-        console.log(XSE.actual_sub_script);
         XSE.scripts[XSE.actual_script].subscripts[XSE.actual_sub_script].returned = false;
         if (continues){
 
             let pointer = XSE.makeraw();
             XSE.scripts[XSE.actual_script].subscripts[pointer] = {
                 pointer: pointer,
-                callback: callback,
+                callback: () => {},
                 returned: false,
                 gotoEd: null,
                 printed: false,
@@ -17,9 +16,22 @@ const elseObj = {
             
                 }
             };
+
             XSE.scripts[XSE.actual_script].subscripts[XSE.actual_sub_script].gotoEd = pointer
-            XSE.goTo('@' + pointer);
-            //XSE.end();
+            
+            if (XSE.scripts[XSE.actual_script].gotoEd == null){
+                try{
+                    let lineas = XSE.scripts[XSE.actual_script].texto.split('\n'); 
+                    let ultima = lineas[lineas.length - 2].split(' ');
+                    if (ultima[0] != 'goto'){
+                        XSE.goTo(pointer);
+                    }
+                }catch(e){
+                    console.log(e);
+                    XSE.goTo(pointer);
+                }
+            }
+
             return;
         }
         
