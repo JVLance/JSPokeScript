@@ -1,31 +1,23 @@
 
 class MiniSprite {
 	
-	constructor(compiler, movements, number, parent){
-		this.compiler	= compiler;
-		this.movements	= movements;
-		this.number		= number;
-		this.parent		= parent;
-		this.state		= 'look';
+	constructor(mini){
+		this.mini		= mini;
+		this.state		= 'normal';
 
-		this.applymov	= '';
-	}
-	
-	commit(movements, alias){
-		this.parent.raws.push({
-			'alias'	  : alias,
-			'movements' : this.applymov
-		});
-	}
+		this.applymov	= new Array();
 
-	rollback(){
-		this.applymov = '';
+		for (let key in XSE.movements){
+			this[key] = () => {
+				this.state = key;
+			}
+		}
 	}
 	
 	move(steps, type, state){
 		let state = typeof(state) != 'undefined' ? state : this.state;
 		for (let i = 0; i < steps; i++){
-			this.applymov += this.movements[state][type];
+			this.applymov.push(XSE.movements[state][type]);
 		}
 	}
 
@@ -43,5 +35,12 @@ class MiniSprite {
 
 	right(steps, state){
 		this.move(steps, 'RIGHT', state);
+	}
+
+	end(label){
+		XSE.applymovement({
+			minisprite : this.mini, label : label, movements : this.applymov
+		});
+		this.applymov = new Array();
 	}
 }

@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="X-UA-Compatible" content="ie=edge">
+    <title>Document</title>
+
+    <script src="movements.js"></script>
+    <script src="xse.js"></script>
+    <script src="generals.js"></script>
+    <script src="Minisprite.js"></script>
+</head>
+<body>
+    
+<script type = "text/javascript">
+
+    XSE.init('PRUEBA', 'ruby', function () {
+        msgbox('Esto es una Prueba');
+        IF(['1234', '=', '2000'], function() {
+            msgbox('VIVA EL DINOPOLLO');
+            IF (['BLABLA', '>', '300'], function(){
+                msgbox('PATRIA');
+            });
+        }).ELSE(function () {
+            msgbox('MEJOR EL POLLOSAURIO');
+        });
+    })
+
+    document.write('<pre>' + XSE.output + '</pre>');
+
+</script>
+</body>
+</html>

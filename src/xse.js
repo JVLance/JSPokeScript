@@ -1,7 +1,136 @@
+
 //FUNCTIONS OF XSE TRANSPILATION.
 
 //NAMESPACE
 const XSE = {};
+
+/* FUNCTION TO MAKE A RANDOM RAW LABEL WHEN THIS IS NOT DEFINED */
+XSE.makeraw = function () {
+	var text = "";
+	var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+
+	for (var i = 0; i < 10; i++)
+		text += possible.charAt(Math.floor(Math.random() * possible.length));
+
+	return text;
+}
+
+/* A SIMPLE CLEAN BASE SCRIPT OBJECT */
+var basescript = {
+	pointer: null,
+	callback: null,
+	returned: true,
+	gotoEd: null,
+	printed: false,
+	texto: '',
+	subscripts : {
+
+	}
+}
+
+
+/* ACTUAL SCRIPT IN TRANSPILER */
+XSE.actual_script = null;
+XSE.actual_sub_script = null;
+
+
+/* SCRIPTS STACK OBJECT IN TRANSPILER */
+XSE.scripts = {
+
+}
+
+XSE.output_script = '';
+XSE.output_raw = '';
+XSE.output = '';
+
+/* RAWS DIRECTIONS IN TRANSPILER */
+XSE.RAWS = {};
+
+XSE.compile = function(pointer, script){
+	this.org(pointer);
+	if (typeof script == 'Object'){
+		let run = new script();
+	}else{
+		script();
+	}
+	
+	if (this.scripts[pointer].returned){
+		this.RETURN();
+	}
+
+	
+	if (this.scripts[pointer].gotoEd != null){
+		this.goTo(this.scripts[pointer].gotoEd);
+	}
+
+	if (!this.scripts[pointer].returned && this.scripts[pointer].gotoEd == null){
+		this.end();
+	}
+
+	this.output_script += this.scripts[pointer].texto + '\n\n';
+
+	let keys = Object.keys(this.scripts[pointer].subscripts);
+
+	if (keys.length == 0){
+		return;
+	}
+
+	for (let i = 0; i < keys.length; i++){
+		let sub = this.scripts[pointer].subscripts[keys[i]];
+		this.scripts[sub.pointer] = sub;
+		this.run(this.scripts[sub.pointer]);
+	}
+
+	this.scripts[pointer].subscripts = {};
+
+};
+
+
+
+XSE.prepare_raws = function(){
+	this.output_raw = '';
+	let keys = Object.keys(this.RAWS);
+	for (let i = 0; i < keys.length; i++){
+		let raw = this.RAWS[keys[i]];
+		if (typeof raw == 'string'){
+			this.output_raw += '#org ' + keys[i] + '\n= ' + raw + '\n\n'; 
+		}else{
+			let cache = '#org ' + key[i] + '\n';
+			for (let i = 0; i < raw.length; i++){
+				cache += '#raw 0x' + raw[i] + '\n';
+			}
+			cache += '\n\n';
+			this.output_raw += cache;
+		}
+
+	}
+}
+
+XSE.run = function(script){
+
+	this.compile(script.pointer, script.callback);
+
+	this.prepare_raws();
+
+	this.output = this.output_script + this.output_raw;
+
+	return this.output;
+}
+
+
+XSE.init = function(pointer, version, script){
+	this.scripts = {}
+	this.raws = {};
+	this.scripts[pointer] = basescript;
+
+	this.scripts[pointer].pointer = pointer;
+	this.scripts[pointer].callback = script;
+	this.scripts[pointer].returned = false;
+
+	this.version = version;
+	this.movements = movements[this.version];
+	this.run(this.scripts[pointer]);
+}
 
 /* LIBRARY FUNCTIONS */
 
@@ -16,7 +145,13 @@ XSE.set = function (command, arg){
 		params.push('0x' + arg[i]);
 	}
 	
-	return params.join(' ');
+	this.scripts[this.actual_script].texto += params.join(' ') + (command != 'if' ? '\n' : ' ');
+	return this;
+}
+
+/* RAW FUNCTION TU USE IN MSGBOX AND APPLYMOVEMENT */
+XSE.setRaws = function (label, commands){
+	this.RAWS[label] = commands;
 }
 
 /* GENERAL FUNCTIONS */
@@ -28,23 +163,31 @@ XSE.dynamic = function(offset) {
 
 //ORG
 XSE.org = function(offset){
+	this.actual_script = offset;
 	return this.set('#org', [offset]);
 }
 
 //FACEPLAYER
 XSE.faceplayer = function(){
-	return 'faceplayer';
+	return this.set('faceplayer', []);
 }
 
 //LOCK AND LOCKALL
 XSE.lock = function(all){
 	all = (typeof all == 'undefined') ? false : all;
-	return all ? 'lockall' : 'lock';
+	return this.set(all ? 'lockall' : 'lock', []);
 }
 
 //MSGBOX
-XSE.msgbox = function (label, type){
-	return this.set('msgbox', [((label.indexOf('0x') == -1 && label.indexOf('@') == -1) ? '@' + label : label ), this.getTypeMsgBox(type)]);
+XSE.msgbox = function ({label, text, type}){
+	if (typeof(label) != 'undefined'){
+		label = ((label.indexOf('0x') == -1 && label.indexOf('@') == -1) ? '@' + label : label )
+	}else{
+		label = '@' + this.makeraw(); 
+	}
+
+	this.setRaws(label, text);
+	return this.set('msgbox', [label, this.getTypeMsgBox(type)]);
 }
 
 //TYPES OF MSGBOX
@@ -63,29 +206,37 @@ XSE.getTypeMsgBox = function(type){
 
 //WAITMSG
 XSE.waitmsg = function(){
-	return 'waitmsg';
+	return this.set('waitmsg', []);
 }
 
 //CLOSEONKEYPRESS
 XSE.closeonkeypress = function(){
-	return 'closeonkeypress';
+	return this.set('closeonkeypress', []);
 }
 
 //RELEASE AND RELEASEALL
 
 XSE.release = function(all){
 	all = (typeof all == 'undefined') ? false : all;
-	return all ? 'releaseall' : 'release';
+	return this.set(all ? 'releaseall' : 'release');
 }
 
 //END
 XSE.end = function(){
-	return 'end';
+	return this.set('end', []);
 }
 
 //APPLYMOVEMENT
-XSE.applymovement = function (minisprite, label) {
-	return this.set('applymovement', [minisprite, (( label.indexOf('0x') != -1) ? label : '@' + label )]);
+XSE.applymovement = function ({minisprite, label, movements}) {
+	if (typeof(label) != 'undefined'){
+		label = ((label.indexOf('0x') == -1 && label.indexOf('@') == -1) ? '@' + label : label )
+	}else{
+		label = '@' + this.makeraw(); 
+	}
+
+	this.setRaws(label, movements);
+
+	return this.set('applymovement', [minisprite, label]);
 }
 
 //WAITMOVEMENT
@@ -132,7 +283,7 @@ XSE.setdoorclosed = function (x, y){
 
 //DOORCHANGE
 XSE.doorchange = function(){
-	return 'doorchange'
+	return this.set('doorchange', []);
 }
 
 //GIVEPOKEMON
@@ -177,10 +328,10 @@ XSE.trainerbattle = function (trainer) {
 	
 	let params = [this.getTypeTrainerBattle(trainer.fightType), trainer.trainer, trainer.nextIfLoosed, trainer.firstText];
 	
-	if typeof (trainer.lastText) != 'undefined' {
+	if (typeof (trainer.lastText) != 'undefined') {
 		params.push(trainer.lastText);
 		
-		if typeof(trainer.leaderOrg) != 'undefined'  {
+		if (typeof(trainer.leaderOrg) != 'undefined')  {
 			params.push(trainer.leaderOrg);
 		}
 	}
@@ -228,7 +379,7 @@ XSE.typesConditions = {
 	'!=' : '5'
 }
 
-this.getTypeConditions = function(type){
+XSE.getTypeConditions = function(type){
 	return (type.indexOf('0x') != -1) ? type : this.typesConditions[type];
 }
 
@@ -241,7 +392,7 @@ XSE.IF = function(condition){
 
 XSE.compare = function (variable, value){
 	let command = (variable == 'lastresult') ? 'compare lastresult' : 'compare';
-	let params	= (variable == 'lastresult') ? [values] : [variable, values];
+	let params	= (variable == 'lastresult') ? [value] : [variable, value];
 	return this.set(command, params);
 }
 
@@ -252,7 +403,7 @@ XSE.goTo = function (direction){
 
 //CHECKGENDER
 XSE.checkgender = function(){
-	return 'checkgender';
+	return this.set('checkgender', []);
 }
 
 //SETFLAG
@@ -277,7 +428,7 @@ XSE.setweather = function (weather){
 
 //DOWEATHER
 XSE.doweather = function(){
-	return 'doweather';
+	return this.set('doweather', []);
 }
 
 //GIVEITEM
@@ -298,7 +449,7 @@ XSE.fanfare = function(fanfare){
 
 //WAITFANFARE
 XSE.waitfanfare = function(){
-	return 'waitfanfare';
+	return this.set('waitfanfare', []);
 }
 
 //PLAYSONG
@@ -313,7 +464,7 @@ XSE.special = function(special){
 
 //WAITSTATE
 XSE.waitstate = function(){
-	return 'waitstate';
+	return this.set('waitstate', []);
 }
 
 //FADESCREEN
@@ -339,7 +490,7 @@ XSE.call = function (direction){
 
 //RETURN
 XSE.RETURN = function (){
-	return 'return';
+	return this.set('return', []);
 }
 
 //PAUSE
@@ -349,7 +500,7 @@ XSE.pause = function (time){
 
 //FADEDEFAULT
 XSE.fadedefault = function(){
-	return 'fadedefault';
+	return this.set('fadedefault', []);
 }
 
 //SHOWPOKEPIC
